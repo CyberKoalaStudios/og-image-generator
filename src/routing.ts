@@ -10,12 +10,35 @@ const pathToSlug = (path: string): string => {
     return path;
 };
 
+const slugFromCollection = (path: string): string =>  {
+    path = path.replace(/^\/src\/content\/articles\//, '');
+    path = path.replace(/\.[^\.]*$/, '') + '';
+    return path;
+}
+
+const addCollectionNameAndImageExtension = (path: string): string => {
+    return "articles/" + path + ".png";
+}
+
 function makeGetStaticPaths({
                                 pages,
+                                collection,
                                 param,
                                 getSlug = pathToSlug,
+                                getRawSlug = slugFromCollection,
+                                addCollectionAndExtension = addCollectionNameAndImageExtension,
                             }: OGImageRouteConfig): GetStaticPaths {
-    const slugs = Object.entries(pages).map((page) => getSlug(...page));
+    let slugs = Object.entries(pages).map((page) => getSlug(...page));
+
+    // Filter only slugs in collection
+    if (collection) {
+        const slugsRaw = Object.entries(pages).map((page) => getRawSlug(...page));
+        const slugsFiltered = slugsRaw.filter(slug => collection.some(entry => entry.slug === slug));
+        slugs = slugsFiltered.map((slug) => {
+            return addCollectionAndExtension(slug);
+        });
+    }
+
     const paths = slugs.map((slug) => ({ params: { [param]: slug } }));
     return function getStaticPaths() {
         return paths;
@@ -48,7 +71,10 @@ export function OGDynamicImageRoute(opts: OGImageRouteConfig): {
 
 interface OGImageRouteConfig {
     pages: { [path: string]: any };
+    collection?: { slug?: string, pubDate?: Date }[];
     param: string;
     getSlug?: (path: string, page: any) => string;
+    getRawSlug?:(path: string, page: any) => string;
+    addCollectionAndExtension?:(path: string) => string;
     getImageOptions: (path: string, page: any) => OGImageOptions | Promise<OGImageOptions>;
 }
