@@ -17,6 +17,16 @@ npm i @cyberkoalastudios/og-image-generator
 
 ````typescript
 import {OGDynamicImageRoute} from '@cyberkoalastudios/og-image-generator';
+import {getCollection} from "astro:content";
+
+// (Optional) Example of filtration by current month and non draft posts.
+const nonDraftFreshArticlesEntries = await getCollection('articles', ({ data }) => {
+    const currentDate = new Date();
+    const monthNumber = currentDate.getMonth();
+    if (data.pubDate?.getMonth() == monthNumber) {
+        return data.draft !== true;
+    }
+});
 
 
 export const {getStaticPaths, get} = OGDynamicImageRoute({
@@ -24,6 +34,10 @@ export const {getStaticPaths, get} = OGDynamicImageRoute({
     // In this case it’s `route`, because the file is named `index.ts`.
     param: 'route',
 
+    // (Optional) CollectionEntries (array of content collection) 
+    // If you want generate only filtered posts from collection
+    collection: nonDraftFreshArticlesEntries,
+    
     // A collection of pages to generate images for.
     // This can be any map of paths to data, not necessarily a glob result.
     
