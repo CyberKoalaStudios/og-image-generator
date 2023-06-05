@@ -190,6 +190,7 @@ export interface FontConfig {
 }
 
 ````
+### [How to add image to BaseHead](https://github.com/CyberKoalaStudios/og-image-generator/wiki/BaseHead)
 
 <div style="page-break-after: always;"></div>
 
@@ -199,5 +200,6 @@ export interface FontConfig {
 Great now you should be done!🎉 Deploy your site and test it out. Great site for testing this out is [Open Graph previewer](https://www.opengraph.xyz/).
 
 ---
+
 ## [WIKI](https://github.com/CyberKoalaStudios/og-image-generator/wiki/Deprecated-from-v.1.2.0)
 Useful examples of content collections and improvements via Json LD in Astro
