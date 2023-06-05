@@ -4,6 +4,7 @@ import type { OGImageOptions } from './types/og-image-options';
 
 const pathToSlug = (path: string): string => {
     path = path.replace(/^\/src\/pages\//, '');
+    path = path.replace(/^\/src\/content\//, '');
     path = path.replace(/\.[^\.]*$/, '') + '.png';
     path = path.replace(/\/index\.png$/, '.png');
     return path;
