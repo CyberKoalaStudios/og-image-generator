@@ -31,7 +31,7 @@ const nonDraftFreshArticlesEntries = await getCollection('articles', ({ data }) 
 
 export const {getStaticPaths, get} = OGDynamicImageRoute({
     // Tell us the name of your dynamic route segment.
-    // In this case it’s `route`, because the file is named `index.ts`.
+    // In this case it’s `route`, because the file is named `[...route].ts`.
     param: 'route',
 
     // (Optional) CollectionEntries (array of content collection) 
