@@ -92,7 +92,7 @@ title: My test post
 author: LRN4
 description: "CyberKoala LLC"
 image:
-  url: "https://avatars.githubusercontent.com/u/104198244?s=200&v=4.jpg"
+  url: "https://via.placeholder.com/1920x1080"
   alt: "Image alt"
 pubDate: 2023-06-01
 tags: ["vr","education","tech"]
