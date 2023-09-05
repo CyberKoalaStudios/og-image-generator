@@ -1,10 +1,12 @@
-[![Node.js Package](https://github.com/CyberKoalaStudios/og-image-generator/actions/workflows/npm-publish.yml/badge.svg?event=deployment_status)](https://github.com/CyberKoalaStudios/og-image-generator/actions/workflows/npm-publish.yml)
-
 # :rocket: Astro Open Graph Image Generator
 Astro integration to generate Social Images from Astro Content Collections with custom blurry background that can be loaded via frontmatter.
 
 [![Example of generated image](https://i.ibb.co/vL2mVTz/articles-test.png)](https://cyberkoalastudios.com)
 
+## Contributors:
+
+[![](https://github.com/rhiskey.png?size=50)](https://github.com/rhiskey)
+[![](https://github.com/tnylea.png?size=50)](https://github.com/tnylea)
 
 ## Installation
 ```bash
