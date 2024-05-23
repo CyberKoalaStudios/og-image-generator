@@ -1,4 +1,4 @@
-# :rocket: Astro Open Graph Image Generator
+# :rocket: Open Graph Image Generator
 Astro integration to generate Social Images from Astro Content Collections with custom blurry background that can be loaded via frontmatter.
 
 [![Example of generated image](https://i.ibb.co/vL2mVTz/articles-test.png)](https://cyberkoalastudios.com)
