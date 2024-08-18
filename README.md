@@ -217,5 +217,9 @@ Great now you should be done!🎉 Deploy your site and test it out. Great site f
 
 ---
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=CyberKoalaStudios/og-image-generator&type=Timeline)](https://star-history.com/#CyberKoalaStudios/og-image-generator&Timeline)
+
 ## [WIKI](https://github.com/CyberKoalaStudios/og-image-generator/wiki/Deprecated-from-v.1.2.0)
 Useful examples of content collections and improvements via Json LD in Astro
