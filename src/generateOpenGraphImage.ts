@@ -1,227 +1,238 @@
-import { decodeHTMLStrict } from 'entities';
+import { decodeHTMLStrict } from "entities";
 
-import {CanvasKitPromise, downloadImage, fontManager, loadImage} from './assetLoaders';
-import type {FontConfig} from './types/font-config';
-import type {OGImageOptions} from './types/og-image-options';
-import type {IllogicalSide, LogicalSide, RGBColor, XYWH} from "./types/for-html";
+import {
+  CanvasKitPromise,
+  downloadImage,
+  fontManager,
+  loadImage,
+} from "./assetLoaders";
+import type { FontConfig } from "./types/font-config";
+import type { OGImageOptions } from "./types/og-image-options";
+import type {
+  IllogicalSide,
+  LogicalSide,
+  RGBColor,
+  XYWH,
+} from "./types/for-html";
 import sharp from "sharp";
 
 const [width, height] = [1200, 630];
 const edges: Record<IllogicalSide, XYWH> = {
-    top: [0, 0, width, 0],
-    bottom: [0, height, width, height],
-    left: [0, 0, 0, height],
-    right: [width, 0, width, height],
+  top: [0, 0, width, 0],
+  bottom: [0, height, width, height],
+  left: [0, 0, 0, height],
+  right: [width, 0, width, height],
 };
 const defaults: {
-    border: NonNullable<Required<OGImageOptions['border']>>;
-    font: Record<'title' | 'description', Required<FontConfig>>;
+  border: NonNullable<Required<OGImageOptions["border"]>>;
+  font: Record<"title" | "description", Required<FontConfig>>;
 } = {
-    border: {
-        color: [255, 255, 255] as RGBColor,
-        width: 0,
-        side: 'inline-start' as LogicalSide,
+  border: {
+    color: [255, 255, 255] as RGBColor,
+    width: 0,
+    side: "inline-start" as LogicalSide,
+  },
+  font: {
+    title: {
+      color: [255, 255, 255],
+      size: 70,
+      lineHeight: 1,
+      weight: "Normal",
+      families: ["Noto Sans"],
     },
-    font: {
-        title: {
-            color: [255, 255, 255],
-            size: 70,
-            lineHeight: 1,
-            weight: 'Normal',
-            families: ['Noto Sans'],
-        },
-        description: {
-            color: [255, 255, 255],
-            size: 40,
-            lineHeight: 1.3,
-            weight: 'Normal',
-            families: ['Noto Sans'],
-        },
+    description: {
+      color: [255, 255, 255],
+      size: 40,
+      lineHeight: 1.3,
+      weight: "Normal",
+      families: ["Noto Sans"],
     },
+  },
 };
 
 export async function generateOpenGraphImage({
-                                                 title,
-                                                 description = '',
-                                                 dir = 'ltr',
-                                                 backgroundImage,
-                                                 bgGradient = [[0, 0, 0]],
-                                                 border: borderConfig = {},
-                                                 padding = 60,
-                                                 logo,
-                                                 font: fontConfig = {},
-                                                 fonts = ['https://api.fontsource.org/v1/fonts/noto-sans/latin-400-normal.ttf'],
-                                                 format = 'PNG',
-                                                 quality = 90,
-                                             }: OGImageOptions) {
-    const border = { ...defaults.border, ...borderConfig };
-    const font = {
-        title: { ...defaults.font.title, ...fontConfig.title },
-        description: { ...defaults.font.description, ...fontConfig.description },
+  title,
+  description = "",
+  dir = "ltr",
+  backgroundImage,
+  bgGradient = [[0, 0, 0]],
+  border: borderConfig = {},
+  padding = 60,
+  logo,
+  font: fontConfig = {},
+  fonts = [
+    "https://api.fontsource.org/v1/fonts/noto-sans/latin-400-normal.ttf",
+  ],
+  format = "PNG",
+  quality = 90,
+}: OGImageOptions) {
+  const border = { ...defaults.border, ...borderConfig };
+  const font = {
+    title: { ...defaults.font.title, ...fontConfig.title },
+    description: { ...defaults.font.description, ...fontConfig.description },
+  };
+
+  const isRtl = dir === "rtl";
+  const margin: Record<LogicalSide, number> = {
+    "block-start": padding,
+    "block-end": padding,
+    "inline-start": padding,
+    "inline-end": padding,
+  };
+  margin[border.side] += border.width;
+
+  const CanvasKit = await CanvasKitPromise;
+
+  const textStyle = (fontConfig: Required<FontConfig>) => ({
+    color: CanvasKit.Color(...fontConfig.color),
+    fontFamilies: fontConfig.families,
+    fontSize: fontConfig.size,
+    fontStyle: { weight: CanvasKit.FontWeight[fontConfig.weight] },
+    heightMultiplier: fontConfig.lineHeight,
+  });
+
+  const surface = CanvasKit.MakeSurface(width, height)!;
+  const canvas = surface.getCanvas();
+
+  const bgRect = CanvasKit.XYWHRect(0, 0, width, height);
+  const bgPaint = new CanvasKit.Paint();
+  bgPaint.setShader(
+    CanvasKit.Shader.MakeLinearGradient(
+      [0, 0],
+      [0, height],
+      bgGradient.map((rgb) => CanvasKit.Color(...rgb)),
+      null,
+      CanvasKit.TileMode.Clamp,
+    ),
+  );
+  canvas.drawRect(bgRect, bgPaint);
+
+  if (backgroundImage?.url) {
+    console.log(backgroundImage.url);
+    const imgBuf = await downloadImage(backgroundImage.url);
+
+    const resizedImgBuffer = await sharp(imgBuf)
+      .resize({
+        width: width,
+        height: height,
+        fit: sharp.fit.cover,
+        position: sharp.strategy.entropy,
+      })
+      .toBuffer();
+
+    const img = CanvasKit.MakeImageFromEncoded(resizedImgBuffer);
+    if (img) {
+      let imagePaint = new CanvasKit.Paint();
+
+      imagePaint.setImageFilter(
+        CanvasKit.ImageFilter.MakeBlur(
+          backgroundImage.blurStrength ?? 0,
+          backgroundImage.blurStrength ?? 0,
+          CanvasKit.TileMode.Repeat,
+          null,
+        ),
+      );
+      imagePaint.setAlphaf(backgroundImage.alpha ?? 1);
+      canvas.drawImage(img, 0, 0, imagePaint);
+    }
+  }
+
+  if (border.width) {
+    const borderStyle = new CanvasKit.Paint();
+    borderStyle.setStyle(CanvasKit.PaintStyle.Stroke);
+    borderStyle.setColor(CanvasKit.Color(...border.color));
+    borderStyle.setStrokeWidth(border.width * 2);
+    const borders: Record<LogicalSide, XYWH> = {
+      "block-start": edges.top,
+      "block-end": edges.bottom,
+      "inline-start": isRtl ? edges.right : edges.left,
+      "inline-end": isRtl ? edges.left : edges.right,
     };
+    canvas.drawLine(...borders[border.side], borderStyle);
+  }
 
-    const isRtl = dir === 'rtl';
-    const margin: Record<LogicalSide, number> = {
-        'block-start': padding,
-        'block-end': padding,
-        'inline-start': padding,
-        'inline-end': padding,
-    };
-    margin[border.side] += border.width;
+  let logoHeight = 0;
+  if (logo) {
+    const imgBuf = await loadImage(logo.path);
+    const img = CanvasKit.MakeImageFromEncoded(imgBuf);
+    if (img) {
+      const logoH = img.height();
+      const logoW = img.width();
+      const targetW = logo.size?.[0] ?? logoW;
+      const targetH = logo.size?.[1] ?? (targetW / logoW) * logoH;
+      const xRatio = targetW / logoW;
+      const yRatio = targetH / logoH;
+      logoHeight = targetH;
 
-    const CanvasKit = await CanvasKitPromise;
+      const imagePaint = new CanvasKit.Paint();
+      imagePaint.setImageFilter(
+        CanvasKit.ImageFilter.MakeMatrixTransform(
+          CanvasKit.Matrix.scaled(xRatio, yRatio),
+          { filter: CanvasKit.FilterMode.Linear },
+          null,
+        ),
+      );
 
-    const textStyle = (fontConfig: Required<FontConfig>) => ({
-        color: CanvasKit.Color(...fontConfig.color),
-        fontFamilies: fontConfig.families,
-        fontSize: fontConfig.size,
-        fontStyle: { weight: CanvasKit.FontWeight[fontConfig.weight] },
-        heightMultiplier: fontConfig.lineHeight,
+      const imageLeft = isRtl
+        ? (1 / xRatio) * (width - margin["inline-start"]) - logoW
+        : (1 / xRatio) * margin["inline-start"];
+
+      canvas.drawImage(
+        img,
+        imageLeft,
+        (1 / yRatio) * margin["block-start"],
+        imagePaint,
+      );
+    }
+  }
+
+  const fontMgr = await fontManager.get(fonts);
+
+  if (fontMgr) {
+    const paragraphStyle = new CanvasKit.ParagraphStyle({
+      textAlign: isRtl ? CanvasKit.TextAlign.Right : CanvasKit.TextAlign.Left,
+      textStyle: textStyle(font.title),
+      textDirection: isRtl
+        ? CanvasKit.TextDirection.RTL
+        : CanvasKit.TextDirection.LTR,
     });
-
-    // Set up.
-    const surface = CanvasKit.MakeSurface(width, height)!;
-    const canvas = surface.getCanvas();
-
-    // Draw background gradient.
-    const bgRect = CanvasKit.XYWHRect(0, 0, width, height);
-    const bgPaint = new CanvasKit.Paint();
-    bgPaint.setShader(
-        CanvasKit.Shader.MakeLinearGradient(
-            [0, 0],
-            [0, height],
-            bgGradient.map((rgb) => CanvasKit.Color(...rgb)),
-            null,
-            CanvasKit.TileMode.Clamp
-        )
+    const paragraphBuilder = CanvasKit.ParagraphBuilder.Make(
+      paragraphStyle,
+      fontMgr,
     );
-    canvas.drawRect(bgRect, bgPaint);
+    paragraphBuilder.addText(decodeHTMLStrict(title));
 
-    let bgHeight = 0;
-    // Draw bg image
-    if (backgroundImage?.url){
-        // Download image
-        console.log(backgroundImage.url);
-        const imgBuf = await downloadImage(backgroundImage.url);
+    paragraphBuilder.pushStyle(
+      new CanvasKit.TextStyle({ fontSize: padding / 3, heightMultiplier: 1 }),
+    );
+    paragraphBuilder.addText("\n\n");
 
-        const resizedImgBuffer = await sharp(imgBuf)
-            .resize({
-                width: width,
-                height: height,
-                fit: sharp.fit.cover,
-                position: sharp.strategy.entropy
-            }).toBuffer();
+    paragraphBuilder.pushStyle(
+      new CanvasKit.TextStyle(textStyle(font.description)),
+    );
+    paragraphBuilder.addText(decodeHTMLStrict(description));
 
+    const para = paragraphBuilder.build();
+    const paraWidth =
+      width - margin["inline-start"] - margin["inline-end"] - padding;
+    para.layout(paraWidth);
+    const paraLeft = isRtl
+      ? width - margin["inline-start"] - para.getMaxWidth()
+      : margin["inline-start"];
+    const minTop =
+      margin["block-start"] + logoHeight + (logoHeight ? padding : 0);
+    const maxTop = minTop + (logoHeight ? padding : 0);
+    const naturalTop = height - margin["block-end"] - para.getHeight();
+    const paraTop = Math.max(minTop, Math.min(maxTop, naturalTop));
+    canvas.drawParagraph(para, paraLeft, paraTop);
+  }
 
-        const img = CanvasKit.MakeImageFromEncoded(resizedImgBuffer);
-        if (img) {
-            // Matrix transform to scale the bg to the desired size.
-            let imagePaint = new CanvasKit.Paint();
+  const image = surface.makeImageSnapshot();
+  const imageBytes =
+    image.encodeToBytes(CanvasKit.ImageFormat[format], quality) ||
+    new Uint8Array();
 
-            imagePaint.setImageFilter(
-                CanvasKit.ImageFilter.MakeBlur(
-                    backgroundImage.blurStrength ?? 0,
-                    backgroundImage.blurStrength ?? 0,
-                    CanvasKit.TileMode.Repeat,
-                    null
-                )
-            );
-            imagePaint.setAlphaf(backgroundImage.alpha ?? 1);
-            canvas.drawImage(img, 0, 0, imagePaint);
-        }
-    }
+  surface.dispose();
 
-    // Draw border.
-    if (border.width) {
-        const borderStyle = new CanvasKit.Paint();
-        borderStyle.setStyle(CanvasKit.PaintStyle.Stroke);
-        borderStyle.setColor(CanvasKit.Color(...border.color));
-        borderStyle.setStrokeWidth(border.width * 2);
-        const borders: Record<LogicalSide, XYWH> = {
-            'block-start': edges.top,
-            'block-end': edges.bottom,
-            'inline-start': isRtl ? edges.right : edges.left,
-            'inline-end': isRtl ? edges.left : edges.right,
-        };
-        canvas.drawLine(...borders[border.side], borderStyle);
-    }
-
-    // Draw logo.
-    let logoHeight = 0;
-    if (logo) {
-        const imgBuf = await loadImage(logo.path);
-        const img = CanvasKit.MakeImageFromEncoded(imgBuf);
-        if (img) {
-            const logoH = img.height();
-            const logoW = img.width();
-            const targetW = logo.size?.[0] ?? logoW;
-            const targetH = logo.size?.[1] ?? (targetW / logoW) * logoH;
-            const xRatio = targetW / logoW;
-            const yRatio = targetH / logoH;
-            logoHeight = targetH;
-
-            // Matrix transform to scale the logo to the desired size.
-            const imagePaint = new CanvasKit.Paint();
-            imagePaint.setImageFilter(
-                CanvasKit.ImageFilter.MakeMatrixTransform(
-                    CanvasKit.Matrix.scaled(xRatio, yRatio),
-                    { filter: CanvasKit.FilterMode.Linear },
-                    null
-                )
-            );
-
-            const imageLeft = isRtl
-                ? (1 / xRatio) * (width - margin['inline-start']) - logoW
-                : (1 / xRatio) * margin['inline-start'];
-
-            canvas.drawImage(img, imageLeft, (1 / yRatio) * margin['block-start'], imagePaint);
-        }
-    }
-
-    // Load and configure font families.
-    const fontMgr = await fontManager.get(fonts);
-
-    if (fontMgr) {
-        // Create paragraph with initial styles and add title.
-        const paragraphStyle = new CanvasKit.ParagraphStyle({
-            textAlign: isRtl ? CanvasKit.TextAlign.Right : CanvasKit.TextAlign.Left,
-            textStyle: textStyle(font.title),
-            textDirection: isRtl ? CanvasKit.TextDirection.RTL : CanvasKit.TextDirection.LTR,
-        });
-        const paragraphBuilder = CanvasKit.ParagraphBuilder.Make(paragraphStyle, fontMgr);
-        paragraphBuilder.addText(decodeHTMLStrict(title));
-
-        // Add small empty line betwen title & description.
-        paragraphBuilder.pushStyle(
-            new CanvasKit.TextStyle({ fontSize: padding / 3, heightMultiplier: 1 })
-        );
-        paragraphBuilder.addText('\n\n');
-
-        // Add description.
-        paragraphBuilder.pushStyle(new CanvasKit.TextStyle(textStyle(font.description)));
-        paragraphBuilder.addText(decodeHTMLStrict(description));
-
-        // Draw paragraph to canvas.
-        const para = paragraphBuilder.build();
-        const paraWidth = width - margin['inline-start'] - margin['inline-end'] - padding;
-        para.layout(paraWidth);
-        const paraLeft = isRtl
-            ? width - margin['inline-start'] - para.getMaxWidth()
-            : margin['inline-start'];
-        const minTop = margin['block-start'] + logoHeight + (logoHeight ? padding : 0);
-        const maxTop = minTop + (logoHeight ? padding : 0);
-        const naturalTop = height - margin['block-end'] - para.getHeight();
-        const paraTop = Math.max(minTop, Math.min(maxTop, naturalTop));
-        canvas.drawParagraph(para, paraLeft, paraTop);
-    }
-
-    // Render canvas to a buffer.
-    const image = surface.makeImageSnapshot();
-    const imageBytes =
-        image.encodeToBytes(CanvasKit.ImageFormat[format], quality) || new Uint8Array();
-
-    // Free any memory our surface might be hanging onto.
-    surface.dispose();
-
-    return Buffer.from(imageBytes);
+  return Buffer.from(imageBytes);
 }

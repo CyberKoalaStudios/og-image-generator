@@ -1,4 +1,4 @@
 export type regexesType = {
-    ldJson: RegExp,
-    image: RegExp,
+  ldJson: RegExp;
+  image: RegExp;
 };

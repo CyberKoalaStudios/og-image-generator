@@ -1,2 +1,2 @@
-export { generateOpenGraphImage } from './generateOpenGraphImage';
-export { OGDynamicImageRoute } from './routing';
+export { generateOpenGraphImage } from "./generateOpenGraphImage";
+export { OGDynamicImageRoute } from "./routing";

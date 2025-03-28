@@ -1,5 +1,5 @@
 export type matchedPathType = {
-    pathname: string;
-    regex: RegExp | undefined;
-    namePrefix: string | undefined;
+  pathname: string;
+  regex: RegExp | undefined;
+  namePrefix: string | undefined;
 };
